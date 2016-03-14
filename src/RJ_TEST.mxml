@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   width="380" height="350" minWidth="955" minHeight="600">
+	
+	<fx:Script>
+		<![CDATA[
+        import conditions.ICondition;
+
+        import mx.controls.Alert;
+
+        private var _userModel:UserModel = null;
+        private var _externalFileLoader:FileReference;
+
+        protected function loadUser(event:MouseEvent):void
+        {
+            _externalFileLoader = new FileReference();
+            _externalFileLoader.addEventListener(Event.SELECT, notifyFileUserSelected);
+            _externalFileLoader.browse([new FileFilter("*.xml", "*.xml")]);
+        }
+
+        private function notifyFileUserSelected(e:Event):void
+        {
+            _externalFileLoader.removeEventListener(Event.SELECT, notifyFileUserSelected);
+            _externalFileLoader.addEventListener(Event.COMPLETE, notifyUserFileLoaded);
+            _externalFileLoader.load();
+        }
+
+        private function notifyUserFileLoaded(e:Event):void
+        {
+            _externalFileLoader.removeEventListener(Event.COMPLETE, notifyUserFileLoaded);
+            txtUser.text = e.target.name;
+            processXML(e.target.data);
+            _externalFileLoader = null;
+        }
+
+        private function processXML(data:*):void
+        {
+            var myXML:XML = new XML(data);
+            _userModel = new UserModel;
+            try
+            {
+                _userModel.modify(myXML);
+            }
+            catch (e:Error)
+            {
+                Alert.show("Файл пользователя поврежден", 'Ошибка!', Alert.OK);
+                _userModel = null;
+            }
+            checkLoadedData();
+        }
+
+
+        protected function loadConditions(event:MouseEvent):void
+        {
+            _externalFileLoader = new FileReference();
+            _externalFileLoader.addEventListener(Event.SELECT, notifyFileConditionsSelected);
+            _externalFileLoader.browse([new FileFilter("*.xml", "*.xml")]);
+        }
+
+        private function notifyFileConditionsSelected(e:Event):void
+        {
+            _externalFileLoader.removeEventListener(Event.SELECT, notifyFileConditionsSelected);
+            _externalFileLoader.addEventListener(Event.COMPLETE, notifyConditionsFileLoaded);
+            _externalFileLoader.load();
+        }
+
+        private function notifyConditionsFileLoaded(e:Event):void
+        {
+            _externalFileLoader.removeEventListener(Event.COMPLETE, notifyConditionsFileLoaded);
+            txtConditions.text = e.target.name;
+            processConditionsXML(e.target.data);
+            _externalFileLoader = null;
+        }
+
+        private var _condition:ICondition = null;
+
+        private function processConditionsXML(data:*):void
+        {
+            var myXML:XML = new XML(data);
+
+            try
+            {
+                var conditons:Vector.<ICondition> = FabricConditions.parse(myXML[0].elements()[0]);
+                _condition = conditons[0];
+            }
+            catch (e:Error)
+            {
+                _condition = null;
+                Alert.show("Файл условий поврежден", 'Ошибка!', Alert.OK);
+            }
+            checkLoadedData();
+        }
+
+        private function checkLoadedData():void
+        {
+            btnCheck.enabled = (_userModel != null && _condition != null);
+        }
+
+        private function checkConditions(event:MouseEvent):void
+        {
+            if (_condition.check(_userModel))
+            {
+                txtResult.text = "Доступно";
+            }
+            else
+            {
+                txtResult.text = _condition.failReason;
+            }
+        }
+        ]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:Panel x="0" y="0" width="380" height="350" title="RJ :: Проверка условий">
+		<s:Button id="btnLoadPlayer" x="16" y="37" label="Загрузить пользователя" click="loadUser(event)"/>
+		<s:Button id="btnLoadConditions" x="16" y="66" width="157" label="Загрузить условия" click="loadConditions(event)"/>
+		<s:Button id="btnCheck" x="16" y="135" width="157" label="Проверить условия" click="checkConditions(event)" enabled="false"/>
+		<mx:HRule x="0" y="117" width="368" height="7"/>
+		<s:Label id="txtResult2" x="16" y="162" width="352" height="25" text="Результат: "
+				 verticalAlign="middle"/>
+		<s:Label id="txtUser" x="190" y="37" width="177" height="21" textAlign="center"
+				 verticalAlign="middle"/>
+		<s:Label id="txtConditions" x="190" y="66" width="177" height="21" textAlign="center"
+				 verticalAlign="middle"/>
+		<s:RichEditableText id="txtResult" x="16" y="184" width="352" height="123" editable="false"/>
+	</s:Panel>
+</s:Application>
